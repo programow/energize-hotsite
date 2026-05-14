@@ -68,7 +68,7 @@ if (carousel) {
 
   const GOLD = "203, 169, 104";
   const GOLD_HOT = "255, 220, 160";
-  const NUM_WIRES = 7;
+  const NUM_WIRES = 9;
 
   let W = 0,
     H = 0,
