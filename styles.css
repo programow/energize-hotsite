@@ -787,7 +787,7 @@ section {
 
 .footer-grid {
   display: grid;
-  grid-template-columns: 1.6fr 1fr 1fr 1.2fr 1.2fr;
+  grid-template-columns: 1.6fr 1fr 1.2fr;
   gap: 2.5rem;
   align-items: start;
   padding-bottom: 2rem;
@@ -812,36 +812,6 @@ section {
 
 .footer-list a:hover {
   color: var(--text);
-}
-
-.cert-list {
-  display: flex;
-  gap: 0.6rem;
-  flex-wrap: wrap;
-}
-
-.cert-list li {
-  width: 60px;
-  height: 60px;
-  border-radius: 50%;
-  border: 1px solid var(--line);
-  color: var(--gold);
-  display: grid;
-  place-items: center;
-  font-family: "Montserrat", sans-serif;
-  font-size: 0.7rem;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  line-height: 1;
-  text-align: center;
-}
-
-.cert-list li span {
-  display: block;
-  font-size: 0.6rem;
-  color: var(--muted);
-  margin-top: 2px;
-  font-weight: 500;
 }
 
 .footer-bottom {
