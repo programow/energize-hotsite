@@ -166,8 +166,8 @@ if (carousel) {
       totalLen,
       trailLen,
       depth,
-      width: 0.4 + depth * 1.2,
-      baseAlpha: 0.03 + depth * 0.07,
+      width: 0.45 + depth * 1.4,
+      baseAlpha: 0.045 + depth * 0.11,
       pulsePos: rand(-totalLen * 0.4, -50),
       speed: rand(0.18, 0.42), // px per ms
       delay: 0,
@@ -209,9 +209,9 @@ if (carousel) {
     const p = wire.pulsePos;
     const trail = wire.trailLen;
     const base = wire.baseAlpha;
-    const dim = base * 0.35;
-    const trailBright = Math.min(0.45, base * 3);
-    const head = Math.min(0.6, base * 5.5);
+    const dim = base * 0.32;
+    const trailBright = Math.min(0.65, base * 3.1);
+    const head = Math.min(0.78, base * 6);
 
     // Cases by where pulse head is relative to this segment
     if (p < s0) {
@@ -305,15 +305,15 @@ if (carousel) {
         const f = (p - seg.s0) / seg.len;
         const px = seg.x1 + (seg.x2 - seg.x1) * f;
         const py = seg.y1 + (seg.y2 - seg.y1) * f;
-        const r = 4 + wire.depth * 10;
+        const r = 4 + wire.depth * 12;
         const glow = ctx.createRadialGradient(px, py, 0, px, py, r);
         glow.addColorStop(
           0,
-          `rgba(${GOLD_HOT}, ${(0.22 + wire.depth * 0.2).toFixed(3)})`
+          `rgba(${GOLD_HOT}, ${(0.31 + wire.depth * 0.27).toFixed(3)})`
         );
         glow.addColorStop(
           0.45,
-          `rgba(${GOLD}, ${(0.07 + wire.depth * 0.08).toFixed(3)})`
+          `rgba(${GOLD}, ${(0.1 + wire.depth * 0.11).toFixed(3)})`
         );
         glow.addColorStop(1, `rgba(${GOLD}, 0)`);
         ctx.fillStyle = glow;
