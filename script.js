@@ -68,7 +68,7 @@ if (carousel) {
 
   const GOLD = "203, 169, 104";
   const GOLD_HOT = "255, 220, 160";
-  const NUM_WIRES = 9;
+  const wireCount = () => (window.innerWidth <= 640 ? 7 : 9);
 
   let W = 0,
     H = 0,
@@ -176,7 +176,8 @@ if (carousel) {
 
   function buildAll() {
     wires = [];
-    for (let i = 0; i < NUM_WIRES; i++) wires.push(buildWire());
+    const n = wireCount();
+    for (let i = 0; i < n; i++) wires.push(buildWire());
   }
 
   function resize() {
