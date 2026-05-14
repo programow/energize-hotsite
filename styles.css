@@ -439,7 +439,7 @@ section {
 .feature-pills {
   margin-top: 3.5rem;
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 1rem;
   background: var(--surface);
   border: 1px solid var(--line);
@@ -491,7 +491,7 @@ section {
 /* ---------- Services ---------- */
 .services-grid {
   display: grid;
-  grid-template-columns: 1.1fr 1fr 1fr 1fr 1fr;
+  grid-template-columns: 1.1fr 1fr 1fr 1fr;
   gap: 1.25rem;
   align-items: stretch;
 }
