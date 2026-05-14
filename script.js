@@ -57,7 +57,7 @@ if (carousel) {
   update();
 }
 
-// Electric background — gold lines in faux-3D with traveling pulses
+// Electric background — orthogonal "wires" with pulses traveling along them
 (() => {
   const canvas = document.querySelector(".bolt-bg");
   if (!canvas) return;
@@ -68,56 +68,115 @@ if (carousel) {
 
   const GOLD = "203, 169, 104";
   const GOLD_HOT = "255, 220, 160";
-  const NUM_LINES = 24;
-  const RADIANT_RATIO = 0.4;
+  const NUM_WIRES = 16;
 
   let W = 0,
     H = 0,
     dpr = 1;
-  let lines = [];
+  let wires = [];
 
   const rand = (a, b) => a + Math.random() * (b - a);
+  const c = (a, hot = false) =>
+    `rgba(${hot ? GOLD_HOT : GOLD}, ${Math.max(0, Math.min(1, a)).toFixed(3)})`;
 
-  function buildLines() {
-    lines = [];
-    const vpX = W * rand(0.3, 0.7);
-    const vpY = H * rand(0.25, 0.6);
-    for (let i = 0; i < NUM_LINES; i++) {
-      const depth = Math.pow(Math.random(), 1.6);
-      const radiant = i < NUM_LINES * RADIANT_RATIO;
-      let x1, y1, x2, y2;
-      if (radiant) {
-        const angle = Math.random() * Math.PI * 2;
-        const inner = rand(40, 120);
-        const outer = Math.max(W, H) * rand(0.9, 1.6);
-        x1 = vpX + Math.cos(angle) * inner;
-        y1 = vpY + Math.sin(angle) * inner;
-        x2 = vpX + Math.cos(angle) * outer;
-        y2 = vpY + Math.sin(angle) * outer;
-      } else {
-        const cx = rand(0, W);
-        const cy = rand(0, H);
-        const angle = Math.random() * Math.PI * 2;
-        const len = Math.max(W, H) * rand(0.5, 1.2);
-        x1 = cx - (Math.cos(angle) * len) / 2;
-        y1 = cy - (Math.sin(angle) * len) / 2;
-        x2 = cx + (Math.cos(angle) * len) / 2;
-        y2 = cy + (Math.sin(angle) * len) / 2;
-      }
-      lines.push({
-        x1,
-        y1,
-        x2,
-        y2,
-        depth,
-        width: 0.35 + depth * 1.4,
-        baseAlpha: 0.05 + depth * 0.14,
-        t: rand(-0.6, -0.05),
-        speed: rand(0.00015, 0.00055),
-        delay: 0,
-        reverse: Math.random() < 0.5,
-      });
+  function buildWire() {
+    const edge = Math.floor(Math.random() * 4);
+    let x, y, dx, dy;
+    const margin = 40;
+    if (edge === 0) {
+      x = rand(0.05, 0.95) * W;
+      y = -margin;
+      dx = 0;
+      dy = 1;
+    } else if (edge === 1) {
+      x = W + margin;
+      y = rand(0.05, 0.95) * H;
+      dx = -1;
+      dy = 0;
+    } else if (edge === 2) {
+      x = rand(0.05, 0.95) * W;
+      y = H + margin;
+      dx = 0;
+      dy = -1;
+    } else {
+      x = -margin;
+      y = rand(0.05, 0.95) * H;
+      dx = 1;
+      dy = 0;
     }
+
+    const points = [{ x, y }];
+    const turns = 2 + Math.floor(Math.random() * 2); // 2 or 3 turns
+    const minRun = 70;
+    const maxRun = Math.max(W, H) * 0.45;
+    let lastTurnLeft = null;
+
+    for (let i = 0; i < turns; i++) {
+      const len = rand(minRun, maxRun);
+      x += dx * len;
+      y += dy * len;
+      points.push({ x, y });
+      // Pick a turn direction; avoid 180° (bias against repeating same direction
+      // when it would point the wire back off-screen)
+      const turnLeft = lastTurnLeft == null
+        ? Math.random() < 0.5
+        : Math.random() < 0.5; // free choice — both turns are 90°
+      lastTurnLeft = turnLeft;
+      if (dx !== 0) {
+        dy = dx * (turnLeft ? -1 : 1);
+        dx = 0;
+      } else {
+        dx = dy * (turnLeft ? 1 : -1);
+        dy = 0;
+      }
+    }
+
+    // Final run to exit the viewport on the opposite-ish side
+    const finalLen = rand(maxRun * 0.6, maxRun * 1.4);
+    x += dx * finalLen;
+    y += dy * finalLen;
+    points.push({ x, y });
+
+    // Build segments with cumulative arc length
+    const segments = [];
+    let s = 0;
+    for (let i = 1; i < points.length; i++) {
+      const p1 = points[i - 1];
+      const p2 = points[i];
+      const segLen = Math.hypot(p2.x - p1.x, p2.y - p1.y);
+      if (segLen < 1) continue;
+      segments.push({
+        x1: p1.x,
+        y1: p1.y,
+        x2: p2.x,
+        y2: p2.y,
+        s0: s,
+        s1: s + segLen,
+        len: segLen,
+      });
+      s += segLen;
+    }
+
+    const depth = Math.pow(Math.random(), 1.5);
+    const totalLen = s;
+    const trailLen = rand(120, 260); // pulse trail length in px
+    return {
+      segments,
+      points,
+      totalLen,
+      trailLen,
+      depth,
+      width: 0.5 + depth * 1.6,
+      baseAlpha: 0.06 + depth * 0.16,
+      pulsePos: rand(-totalLen * 0.4, -50),
+      speed: rand(0.18, 0.42), // px per ms
+      delay: 0,
+    };
+  }
+
+  function buildAll() {
+    wires = [];
+    for (let i = 0; i < NUM_WIRES; i++) wires.push(buildWire());
   }
 
   function resize() {
@@ -129,80 +188,146 @@ if (carousel) {
     canvas.style.width = W + "px";
     canvas.style.height = H + "px";
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    buildLines();
+    buildAll();
   }
 
-  function step(line, dt) {
-    if (line.t > 1.1) {
-      line.delay -= dt;
-      if (line.delay <= 0) {
-        line.t = -0.05;
-        line.speed = rand(0.00015, 0.00055);
-        line.reverse = Math.random() < 0.5;
-        line.delay = rand(600, 2400);
+  function step(wire, dt) {
+    if (wire.pulsePos > wire.totalLen + wire.trailLen) {
+      wire.delay -= dt;
+      if (wire.delay <= 0) {
+        wire.pulsePos = -wire.trailLen * rand(0.2, 1.2);
+        wire.speed = rand(0.18, 0.42);
+        wire.delay = rand(500, 2200);
       }
     } else {
-      line.t += line.speed * dt;
+      wire.pulsePos += wire.speed * dt;
     }
   }
 
-  function addStop(grad, prevRef, offset, color) {
-    const o = Math.max(0, Math.min(1, offset));
-    if (o > prevRef.value + 0.0001) {
-      grad.addColorStop(o, color);
-      prevRef.value = o;
-    }
-  }
-
-  function drawLine(line) {
-    let { x1, y1, x2, y2 } = line;
-    if (line.reverse) {
-      [x1, x2] = [x2, x1];
-      [y1, y2] = [y2, y1];
-    }
-    const t = line.t;
-    const base = line.baseAlpha;
+  function drawSegmentGradient(seg, wire) {
+    const { x1, y1, x2, y2, s0, s1, len } = seg;
+    const p = wire.pulsePos;
+    const trail = wire.trailLen;
+    const base = wire.baseAlpha;
     const dim = base * 0.3;
-    const trail = Math.min(0.9, base * 3.5);
-    const head = Math.min(0.95, base * 7);
-    const grad = ctx.createLinearGradient(x1, y1, x2, y2);
-    const c = (a, hot = false) =>
-      `rgba(${hot ? GOLD_HOT : GOLD}, ${a.toFixed(3)})`;
-    const prev = { value: -1 };
+    const trailBright = Math.min(0.85, base * 3.2);
+    const head = Math.min(0.95, base * 6.5);
 
-    if (t < 0 || t > 1) {
-      addStop(grad, prev, 0, c(base));
-      addStop(grad, prev, 1, c(base));
+    // Cases by where pulse head is relative to this segment
+    if (p < s0) {
+      // Pulse hasn't reached this segment → all dim ahead
+      ctx.strokeStyle = c(dim);
+    } else if (p > s1 + trail) {
+      // Pulse and trail have fully passed → back to base
+      ctx.strokeStyle = c(base);
     } else {
-      addStop(grad, prev, 0, c(base));
-      addStop(grad, prev, t - 0.18, c(base));
-      addStop(grad, prev, t - 0.05, c(trail));
-      addStop(grad, prev, t - 0.005, c(head, true));
-      addStop(grad, prev, t + 0.008, c(dim));
-      addStop(grad, prev, 1, c(dim));
+      // Need a gradient along this segment
+      const grad = ctx.createLinearGradient(x1, y1, x2, y2);
+      // Helper to convert a global arc-length position to local 0..1 within
+      // this segment, clamped.
+      const toLocal = (sg) => Math.max(0, Math.min(1, (sg - s0) / len));
+
+      if (p <= s1) {
+        // Pulse head is somewhere in this segment
+        const t = toLocal(p);
+        const tTrailEnd = toLocal(p - trail); // older end of trail
+        // Build stops in order
+        const stops = [];
+        if (tTrailEnd > 0) {
+          stops.push([0, base]);
+          stops.push([tTrailEnd, base]);
+        } else {
+          // Trail starts before this segment — fade in from a partial value
+          // Compute trail brightness at start of segment (s0)
+          const distBack = p - s0; // 0..trail
+          const k = 1 - distBack / trail; // 1 = at head end, 0 = at trail end
+          const alphaAtStart = base + (trailBright - base) * Math.max(0, 1 - k);
+          stops.push([0, alphaAtStart]);
+        }
+        // Approach to head
+        const tNearHead = Math.max(0, t - 30 / len);
+        stops.push([tNearHead, trailBright]);
+        stops.push([t, head]);
+        // Just past head
+        const tDimStart = Math.min(1, t + 6 / len);
+        stops.push([tDimStart, dim]);
+        stops.push([1, dim]);
+
+        // Apply ordered stops, dedupe close values
+        let lastO = -1;
+        for (const [o, a] of stops) {
+          if (o > lastO + 0.0005) {
+            grad.addColorStop(o, c(a, a === head));
+            lastO = o;
+          }
+        }
+        ctx.strokeStyle = grad;
+      } else {
+        // Pulse head has exited; trail still reaches into segment
+        // Trail end (older) global pos: p - trail
+        // Segment range covered by trail: max(s0, p-trail) .. s1
+        const tTrailEnd = toLocal(p - trail);
+        // Brightness at the far end of segment (s1) = how close it was to head
+        // when head passed: distance behind head = p - s1
+        const distAtEnd = p - s1; // > 0
+        const kEnd = 1 - distAtEnd / trail; // 1 = head just left, 0 = trail end
+        const alphaAtEnd = base + (trailBright - base) * Math.max(0, kEnd);
+        if (tTrailEnd > 0) {
+          grad.addColorStop(0, c(base));
+          grad.addColorStop(tTrailEnd, c(base));
+          grad.addColorStop(1, c(alphaAtEnd));
+        } else {
+          // Trail spans entire segment
+          const distAtStart = p - s0;
+          const kStart = 1 - distAtStart / trail;
+          const alphaAtStart = base + (trailBright - base) * Math.max(0, kStart);
+          grad.addColorStop(0, c(alphaAtStart));
+          grad.addColorStop(1, c(alphaAtEnd));
+        }
+        ctx.strokeStyle = grad;
+      }
     }
 
-    ctx.strokeStyle = grad;
-    ctx.lineWidth = line.width;
-    ctx.lineCap = "round";
+    ctx.lineWidth = wire.width;
+    ctx.lineCap = "butt";
     ctx.beginPath();
     ctx.moveTo(x1, y1);
     ctx.lineTo(x2, y2);
     ctx.stroke();
+  }
 
-    if (t >= 0 && t <= 1) {
-      const px = x1 + (x2 - x1) * t;
-      const py = y1 + (y2 - y1) * t;
-      const r = 4 + line.depth * 12;
-      const glow = ctx.createRadialGradient(px, py, 0, px, py, r);
-      glow.addColorStop(0, `rgba(${GOLD_HOT}, ${0.35 + line.depth * 0.35})`);
-      glow.addColorStop(0.45, `rgba(${GOLD}, ${0.12 + line.depth * 0.15})`);
-      glow.addColorStop(1, `rgba(${GOLD}, 0)`);
-      ctx.fillStyle = glow;
-      ctx.beginPath();
-      ctx.arc(px, py, r, 0, Math.PI * 2);
-      ctx.fill();
+  function drawHeadGlow(wire) {
+    const p = wire.pulsePos;
+    if (p < 0 || p > wire.totalLen) return;
+    // Find segment containing p
+    for (const seg of wire.segments) {
+      if (p >= seg.s0 && p <= seg.s1) {
+        const f = (p - seg.s0) / seg.len;
+        const px = seg.x1 + (seg.x2 - seg.x1) * f;
+        const py = seg.y1 + (seg.y2 - seg.y1) * f;
+        const r = 5 + wire.depth * 14;
+        const glow = ctx.createRadialGradient(px, py, 0, px, py, r);
+        glow.addColorStop(
+          0,
+          `rgba(${GOLD_HOT}, ${(0.4 + wire.depth * 0.35).toFixed(3)})`
+        );
+        glow.addColorStop(
+          0.45,
+          `rgba(${GOLD}, ${(0.14 + wire.depth * 0.15).toFixed(3)})`
+        );
+        glow.addColorStop(1, `rgba(${GOLD}, 0)`);
+        ctx.fillStyle = glow;
+        ctx.beginPath();
+        ctx.arc(px, py, r, 0, Math.PI * 2);
+        ctx.fill();
+        return;
+      }
     }
+  }
+
+  function drawWire(wire) {
+    for (const seg of wire.segments) drawSegmentGradient(seg, wire);
+    drawHeadGlow(wire);
   }
 
   let last = performance.now();
@@ -210,9 +335,9 @@ if (carousel) {
     const dt = Math.min(50, now - last);
     last = now;
     ctx.clearRect(0, 0, W, H);
-    for (const line of lines) {
-      step(line, dt);
-      drawLine(line);
+    for (const wire of wires) {
+      step(wire, dt);
+      drawWire(wire);
     }
     requestAnimationFrame(frame);
   }
@@ -222,9 +347,9 @@ if (carousel) {
 
   if (reduceMotion) {
     ctx.clearRect(0, 0, W, H);
-    for (const line of lines) {
-      line.t = -1;
-      drawLine(line);
+    for (const wire of wires) {
+      wire.pulsePos = -wire.trailLen * 10; // park pulses far behind, lines at base
+      drawWire(wire);
     }
   } else {
     requestAnimationFrame(frame);
