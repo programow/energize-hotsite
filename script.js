@@ -181,12 +181,11 @@ if (carousel) {
 
   function resize() {
     dpr = Math.min(window.devicePixelRatio || 1, 2);
-    W = window.innerWidth;
-    H = window.innerHeight;
+    W = canvas.clientWidth || canvas.parentElement.clientWidth;
+    H = canvas.clientHeight || canvas.parentElement.clientHeight;
+    if (!W || !H) return;
     canvas.width = W * dpr;
     canvas.height = H * dpr;
-    canvas.style.width = W + "px";
-    canvas.style.height = H + "px";
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     buildAll();
   }
@@ -343,6 +342,9 @@ if (carousel) {
   }
 
   window.addEventListener("resize", resize);
+  if (typeof ResizeObserver !== "undefined") {
+    new ResizeObserver(resize).observe(canvas);
+  }
   resize();
 
   if (reduceMotion) {
