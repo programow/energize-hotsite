@@ -761,9 +761,15 @@ section {
 }
 
 .dif-icon {
-  font-size: 1.6rem;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
   color: var(--gold);
-  margin-bottom: 0.25rem;
+  background: rgba(203, 169, 104, 0.08);
+  border: 1px solid rgba(203, 169, 104, 0.2);
+  margin-bottom: 0.5rem;
 }
 
 .diferenciais-grid h3 {
